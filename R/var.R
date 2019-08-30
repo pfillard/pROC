@@ -39,6 +39,8 @@ var.smooth.roc <- function(smooth.roc, ...) {
 }
 
 var.roc <- function(roc,
+                    fom='auc',
+                    x=0.5,
                     method=c("delong", "bootstrap", "obuchowski"),
                     boot.n = 2000,
                     boot.stratified = TRUE,
@@ -85,6 +87,9 @@ var.roc <- function(roc,
       else if ("smooth.roc" %in% class(roc)) {
       	stop("DeLong method is not supported for smoothed ROCs. Use method=\"bootstrap\" instead.")
       }
+      else if (fom %in% c("sensitivity", "specificity")) {
+        stop("FOM sensitivity and specificity not supported with DeLong method yet.")
+      }
     }
 
     else if (method == "obuchowski") {
@@ -93,6 +98,9 @@ var.roc <- function(roc,
       }
       if (has.partial.auc(roc) && attr(roc$auc, "partial.auc.focus") == "sensitivity") {
         stop("Using Obuchowski for partial AUC on sensitivity region is not supported. Using bootstrap instead.")
+      }
+      if (fom %in% c("sensitivity", "specificity")) {
+        stop("FOM sensitivity and specificity not supported with Obuchowski method yet.")
       }
     }
   }
@@ -107,7 +115,7 @@ var.roc <- function(roc,
     var <- var.roc.obuchowski(roc) / length(roc$cases)
   }
   else {
-    var <- var.roc.bootstrap(roc, boot.n, boot.stratified, progress, parallel, ...)
+    var <- var.roc.bootstrap(roc, fom, x, boot.n, boot.stratified, progress, parallel, ...)
   }
   
   if (percent) {
@@ -116,12 +124,15 @@ var.roc <- function(roc,
   return(var)
 }
 
-var.roc.bootstrap <- function(roc, boot.n, boot.stratified, progress, parallel, ...) {
+var.roc.bootstrap <- function(roc, fom, x, boot.n, boot.stratified, progress, parallel, ...) {
   if(class(progress) != "list")
     progress <- roc.utils.get.progress.bar(progress, title="AUC variance", label="Bootstrap in progress...", ...)
 
   ## Smoothed ROC curve variance
   if (class(roc) == "smooth.roc") {
+    if (fom %in% c("sensitivity", "specificity")) {
+      stop("FOM sensitivity and specificity not supported with smooth roc yet.")
+    }
     smoothing.args <- roc$smoothing.args
     smoothing.args$smooth <- TRUE
     non.smoothed.roc <- attr(roc, "roc")
@@ -139,11 +150,22 @@ var.roc.bootstrap <- function(roc, boot.n, boot.stratified, progress, parallel, 
     }
   }
   ## Non smoothed ROC curves variance
-  else {
+  else {    
     if (boot.stratified) {
-      aucs <- unlist(llply(1:boot.n, stratified.ci.auc, roc=roc, .progress=progress, .parallel=parallel)) # ci.auc: returns aucs just as we need for var, so re-use it!
+      if (fom == 'auc') {
+        aucs <- unlist(llply(1:boot.n, stratified.ci.auc, roc=roc, .progress=progress, .parallel=parallel)) # ci.auc: returns aucs just as we need for var, so re-use it!
+      }
+      else if (fom == 'sensitivity') {
+        aucs <- unlist(llply(1:boot.n, stratified.ci.sens, roc=roc, x=x, .progress=progress, .parallel=parallel)) # ci.auc: returns aucs just as we need for var, so re-use it!
+      }
+      else if (fom == 'specificity') {
+        aucs <- unlist(llply(1:boot.n, stratified.ci.spec, roc=roc, x=x, .progress=progress, .parallel=parallel)) # ci.auc: returns aucs just as we need for var, so re-use it!
+      }      
     }
     else {
+      if (fom %in% c("sensitivity", "specificity")) {
+        stop("FOM sensitivity and specificity not supported with non-stratified bootstrap yet.")
+      }
       aucs <- unlist(llply(1:boot.n, nonstratified.ci.auc, roc=roc, .progress=progress, .parallel=parallel))
     }
   }
