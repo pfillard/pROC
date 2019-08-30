@@ -299,7 +299,7 @@ stratified.ci.auc <- function(n, roc) {
   
   perfs <- roc$fun.sesp(thresholds=thresholds, controls=controls, cases=cases, direction=roc$direction)
   roc$sensitivities <- perfs$se
-  roc$specificities <- perfs$sp
+  roc$specificities <- perfs$sp  
 
   auc.roc(roc, partial.auc=attr(roc$auc, "partial.auc"), partial.auc.focus=attr(roc$auc, "partial.auc.focus"), partial.auc.correct=attr(roc$auc, "partial.auc.correct"), allow.invalid.partial.auc.correct = TRUE)
 }
@@ -307,13 +307,14 @@ stratified.ci.auc <- function(n, roc) {
 stratified.ci.sens <- function(n, roc, x) {
   controls <- sample(roc$controls, replace=TRUE)
   cases <- sample(roc$cases, replace=TRUE)
+
   thresholds <- roc.utils.thresholds(c(cases, controls), roc$direction)
   
   perfs <- roc$fun.sesp(thresholds=thresholds, controls=controls, cases=cases, direction=roc$direction)
   roc$sensitivities <- perfs$se
-  roc$specificities <- perfs$sp
+  roc$specificities <- perfs$sp  
 
-  coords(roc, x=x, input=c("threshold"), ret=c("sensitivity"), transpose=TRUE)
+  a <- coords(roc, x=x, input=c("specificity"), ret=c("sensitivity"), transpose=TRUE)  
 }
 
 stratified.ci.spec <- function(n, roc, x) {
@@ -325,7 +326,7 @@ stratified.ci.spec <- function(n, roc, x) {
   roc$sensitivities <- perfs$se
   roc$specificities <- perfs$sp
 
-  coords(roc, x=x, input=c("threshold"), ret=c("specificity"), transpose=TRUE)
+  coords(roc, x=x, input=c("sensitivity"), ret=c("specificity"), transpose=TRUE)
 }
 
 nonstratified.ci.auc <- function(n, roc) {
